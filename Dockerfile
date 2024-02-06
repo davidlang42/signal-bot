@@ -4,7 +4,7 @@ FROM ubuntu:latest
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		sed jq qrencode wget curl tar bash
+		sed jq qrencode wget curl tar bash default-jre
 
 # install signal-cli
 ENV SIGNAL_CLI_VERSION=0.12.7
