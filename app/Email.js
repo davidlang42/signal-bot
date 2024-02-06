@@ -2,7 +2,7 @@ function doEmail(e) {
   const title = e.parameter.title;
   if (!title) return doError(e, "No title set for email.");
   const html = e.parameter.html;
-  const msg = e.parameter.msg;
+  let msg = e.parameter.msg;
   if (html) {
     GmailApp.sendEmail(EMAIL_ADDRESS, title, "", convertInlineImagesToBlobs(html))
   } else {
