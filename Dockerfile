@@ -4,12 +4,12 @@ FROM ubuntu:latest
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		sed head jq base64 qrencode wget curl tar bash
+		sed jq qrencode wget curl tar bash
 
 # install signal-cli
 ENV SIGNAL_CLI_VERSION=0.12.7
 RUN set -eux; \
-    wget https://github.com/AsamK/signal-cli/releases/download/v"${SIGNAL_CLI_VERSION}"/signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz; \
+    wget https://github.com/AsamK/signal-cli/releases/download/v"${SIGNAL_CLI_VERSION}"/signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz --no-check-certificate; \
     tar xf signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz -C /opt; \
     ln -sf /opt/signal-cli-"${SIGNAL_CLI_VERSION}"/bin/signal-cli /usr/local/bin/; \
     rm signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz
