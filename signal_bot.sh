@@ -20,7 +20,7 @@ send_email() { # subject html
 }
 
 add_task() { # title notes
-    local due=$(date +%Y-%m-%d)
+    local due=$(date -d "$DATE_ADJUSTMENT" +%Y-%m-%d)
     curl -G "$GOOGLE_APPS_SCRIPT_URL" --data-urlencode "action=task" --data-urlencode "due=$due" --data-urlencode "title=$1" --data-urlencode "notes=$2"
 }
 
