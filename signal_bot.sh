@@ -27,7 +27,7 @@ add_task() { # title notes
 send_link_email() {
     local link
     read -r link
-    local png=$(qrencode -o - "$link" | base64)
+    local png=$(qrencode -o - "$link" | base64 -w 0)
     local html="<p>$link</p><img src=\"data:image/png;base64,$png\" />"
     if ! send_email "SignalBot is not linked" "$html"
     then
