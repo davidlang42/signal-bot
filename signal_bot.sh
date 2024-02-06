@@ -11,6 +11,7 @@ set -x
 
 TASK_EMOJI="☑️"
 MESSAGES="/signal_bot_messages"
+CONFIG="/signal_bot_config"
 
 set -o pipefail # link_device, read_messages
 
@@ -38,12 +39,12 @@ send_link_email() {
 
 link_device() {
     # set -o pipefail
-    signal-cli link -n "SignalBot" | send_link_email
+    signal-cli --config "$CONFIG" link -n "SignalBot" | send_link_email
 }
 
 read_messages() {
     # set -o pipefail
-    sh -c 'echo $$; exec signal-cli -o json receive -t -1 --ignore-attachments --ignore-stories' | process_messages
+    sh -c "echo \$\$; exec signal-cli --config \"$CONFIG\" -o json receive -t -1 --ignore-attachments --ignore-stories" | process_messages
     result=$?
     if [[ $result -eq 143 ]]
     then
@@ -157,7 +158,7 @@ handle_reaction() { # pid msg_author msg_receiver msg_timestamp
 }
 
 remove_emoji() { # msg_author msg_receiver msg_timestamp
-    signal-cli sendReaction -r -e "$TASK_EMOJI" -t "$3" -a "$1" "$2"
+    signal-cli --config "$CONFIG" sendReaction -r -e "$TASK_EMOJI" -t "$3" -a "$1" "$2"
 }
 
 # main loop

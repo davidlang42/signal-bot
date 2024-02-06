@@ -17,6 +17,9 @@ RUN set -eux; \
 # copy files
 COPY --chmod=500 signal_bot.sh /
 RUN mkdir /signal_bot_messages
+RUN mkdir /signal_bot_config
+VOLUME /signal_bot_messages
+VOLUME /signal_bot_config
 
 # run
 ENTRYPOINT ["/signal_bot.sh"] # requires environment var GOOGLE_APPS_SCRIPT_URL to be set
