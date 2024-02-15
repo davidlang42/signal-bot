@@ -9,8 +9,6 @@ fi
 
 set -x
 
-export LANG='en_AU.UTF-8'
-
 TASK_EMOJI="☑️"
 MESSAGES="/signal_bot_messages"
 CONFIG="/signal_bot_config"

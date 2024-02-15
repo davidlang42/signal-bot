@@ -6,6 +6,14 @@ RUN set -eux; \
 	apt-get install -y --no-install-recommends \
 		sed jq qrencode wget curl tar bash ca-certificates
 
+# set the correct locale so java supports emojis
+RUN apt-get install -y locales && \
+    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
 # install java 21
 ENV JAVA_INSTALLER=jdk-21_linux-x64_bin.deb
 RUN set -eux; \
