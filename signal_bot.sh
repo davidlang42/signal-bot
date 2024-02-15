@@ -158,12 +158,7 @@ handle_reaction() { # pid msg_author msg_receiver msg_timestamp
 }
 
 remove_emoji() { # msg_author msg_receiver msg_timestamp
-    log_and_run signal-cli -v --config "$CONFIG" sendReaction -r -e ☑️ -t "$3" -a "$1" "$2"
-}
-
-log_and_run() {
-  echo "$@" > "$MESSAGES/last_remove_emoji"
-  "$@"
+    signal-cli --config "$CONFIG" sendReaction -r -e "$TASK_EMOJI" -t "$3" -a "$1" "$2"
 }
 
 # main loop
