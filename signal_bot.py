@@ -67,7 +67,7 @@ def LinkDevice():
     return returncode == 0
 
 def ListenForMessages():
-    return subprocess.Popen(['signal-cli', '--config', CONFIG, '-o', 'json', 'receive', '-t', '-1', '--ignore-attachments', '--ignore-stories', '--max-messages', '10'], stdout=subprocess.PIPE, universal_newlines=True)
+    return subprocess.Popen(['signal-cli', '--config', CONFIG, '-o', 'json', 'receive', '-t', '-1', '--ignore-attachments', '--ignore-stories'], stdout=subprocess.PIPE, universal_newlines=True)
 
 def RemoveEmoji(author, receiver, timestamp):
     listener.terminate() # otherwise executing signal-cli below will fail
@@ -105,16 +105,13 @@ def ProcessMessage(m, source, dest, name):
     timestamp = m["timestamp"]
     StoreMessage(source, dest, timestamp, name, message)
     if "quote" in m:
-        #TODO appending quoted text isn't working
         reply = m["quote"]
-        print(f"QUOTE: {reply}") #TODO remove test code
         reply_to_author = reply["author"]
         reply_to_timestamp = reply["id"]
         reply_to_receiver = dest
         if reply_to_author == reply_to_receiver:
             reply_to_receiver = source
         previous_message_lines = ReadMessageLines(reply_to_author, reply_to_receiver, reply_to_timestamp)
-        print(f"PREVIOUS ({reply_to_author}, {reply_to_receiver}, {reply_to_timestamp}): {previous_message_lines}") #TODO remove test code
         if previous_message_lines and len(previous_message_lines) != 0:
             AppendMessage(source, dest, timestamp, previous_message_lines)
     HandleMessage(source, dest, timestamp, message)
@@ -140,7 +137,7 @@ def StoreMessage(author, receiver, timestamp, name, message):
 def AppendMessage(author, receiver, timestamp, previous_message_lines):
     with open(MessagePath(author, receiver, timestamp), 'a') as f:
         for line in previous_message_lines[1:]: # skip the first line (heading) of previous_message, we only want to append the body
-            f.write(line + '\n')
+            f.write(line)
 
 def ReadMessageLines(author, receiver, timestamp):
     path = MessagePath(author, receiver, timestamp)
@@ -168,8 +165,8 @@ def HandleReaction(author, receiver, timestamp, emoji, is_remove):
             name = "Unknown Task"
             notes = f"Signal message from {author} to {receiver} at {timestamp} could not be found"
         else:
-            name = lines[0]
-            notes = lines[1:]
+            name = lines[0].strip()
+            notes = ''.join(lines[1:]).strip()
         if AddTask(name, notes):
             RemoveEmoji(author, receiver, timestamp)
 
