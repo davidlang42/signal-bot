@@ -80,7 +80,7 @@ def ProcessPayload(p):
         ProcessEnvelope(p["envelope"], p["account"])
 
 def ProcessEnvelope(e, account):
-    print(f"ENVELOPE: {e}") #TODO: remove
+    print(f"ENVELOPE: {e}") #TODO remove
     if "syncMessage" in e and "sentMessage" in e["syncMessage"]:
         # I sent a message or I reacted
         sent = e["syncMessage"]["sentMessage"]
@@ -109,7 +109,8 @@ def ProcessMessage(m, source, dest, name):
         if reply_to_author == reply_to_receiver:
             reply_to_receiver = source
         previous_message = ReadMessage(reply_to_author, reply_to_receiver, reply_to_timestamp)
-        AppendMessage(source, dest, timestamp, previous_message)
+        if previous_message:
+            AppendMessage(source, dest, timestamp, previous_message)
     HandleMessage(source, dest, timestamp, message)
 
 def ProcessReaction(reaction, source, dest):
@@ -128,21 +129,28 @@ def StoreMessage(author, receiver, timestamp, name, message):
     print(f'[{author}, {receiver}, {timestamp}] {name}{NAME_SEPARATOR}{message}') #TODO remove
     heading = (message[:MAX_TITLE_LENGTH-len(TITLE_TRUNCATION)] + TITLE_TRUNCATION) if len(message) > MAX_TITLE_LENGTH else message
     body = name + NAME_SEPARATOR + message
-    #TODO: echo "$1" > "$(message_path "$2" "$3" "$4")"
-    #TODO: echo "(Signal message $5)" >> "$(message_path "$2" "$3" "$4")"
+    with open(MessagePath(author, receiver, timestamp), 'w') as f:
+        f.write(heading + '\n')
+        f.write(body + '\n')
 
 def AppendMessage(author, receiver, timestamp, previous_message):
-    print(f'TODO---APPEND: {previous_message}')
-    #TODO: skip the first line of previous_message, because thats just the (truncated) heading
-    #TODO: echo "$1" >> "$(message_path "$2" "$3" "$4")"
+    print(f'+[{author}, {receiver}, {timestamp}] {previous_message}') #TODO remove
+    append_lines = previous_message.splitlines()[1:] # skip the first line (heading) of previous_message, we only want to append the body
+    with open(MessagePath(author, receiver, timestamp), 'a') as f:
+        for line in append_lines:
+            f.write(line + '\n')
 
 def ReadMessage(author, receiver, timestamp):
-    print(f'TODO---READ')
-    #TODO: read the whole thing, including the (truncated) heading on the first line
-    #TODO: cat "$(message_path "$1" "$2" "$3")"
+    path = MessagePath(author, receiver, timestamp)
+    if not os.path.isfile(path):
+        return None
+    with open(path, 'r') as f:
+        return f.read().decode()
 
 def MessagePath(author, receiver, timestamp):
-    return f"{MESSAGES}/{author}_{receiver}_{timestamp}"
+    folder = os.path.join(MESSAGES, author, receiver)
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, timestamp)
 
 ### Actually be a Signal bot
 
