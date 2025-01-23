@@ -5,15 +5,6 @@ RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		wget tar ca-certificates openjdk-21-jre-headless python3 python3-requests python3-qrcode
-# sed jq qrencode curl bash
-
-# # set the correct locale so java supports emojis
-# RUN apt-get install -y locales && \
-#     sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
-#     locale-gen
-# ENV LANG en_US.UTF-8
-# ENV LANGUAGE en_US:en
-# ENV LC_ALL en_US.UTF-8
 
 # install signal-cli
 ENV SIGNAL_CLI_VERSION=0.13.12
@@ -31,4 +22,4 @@ VOLUME /signal_bot_messages
 VOLUME /signal_bot_config
 
 # run (requires environment var GOOGLE_APPS_SCRIPT_URL to be set)
-ENTRYPOINT ["python3", "-i"]
+ENTRYPOINT ["python3", "/signal_bot.py"]

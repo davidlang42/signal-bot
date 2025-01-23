@@ -38,7 +38,7 @@ def SendEmail(subject, html):
 def AddTask(title, notes):
     response = requests.get(appsScriptUrl, {
         'action':'task',
-        'due': datetime.datetime.today().strftime('%Y-%m-%d'), #TODO might need to handle $DATE_ADJUSTMENT unless I can set container timezone
+        'due': datetime.datetime.today().strftime('%Y-%m-%d'), #TODO need to handle $DATE_ADJUSTMENT unless I can set container timezone (or maybe send timestamp here, and let the GAS sort it out)
         'title': title,
         'notes': notes
     })
@@ -71,7 +71,7 @@ def ListenForMessages():
 
 def RemoveEmoji(author, receiver, timestamp):
     listener.terminate() # otherwise executing signal-cli below will fail
-    subprocess.run(['signal-cli', '--config', CONFIG, 'sendReaction', '-r', '-e', TASK_EMOJI, '-t', timestamp, '-a', author, receiver])
+    subprocess.run(['signal-cli', '--config', CONFIG, 'sendReaction', '-r', '-e', TASK_EMOJI, '-t', str(timestamp), '-a', author, receiver]) #TODO removing emojis doesnt work when message receiver is a groupid (it should use -g cli arg instead)
 
 ### Parse JSON payloads
 
@@ -80,7 +80,6 @@ def ProcessPayload(p):
         ProcessEnvelope(p["envelope"], p["account"])
 
 def ProcessEnvelope(e, account):
-    print(f"ENVELOPE: {e}") #TODO remove
     if "syncMessage" in e and "sentMessage" in e["syncMessage"]:
         # I sent a message or I reacted
         sent = e["syncMessage"]["sentMessage"]
@@ -106,16 +105,18 @@ def ProcessMessage(m, source, dest, name):
     timestamp = m["timestamp"]
     StoreMessage(source, dest, timestamp, name, message)
     if "quote" in m:
-        #TODO TEST THIS BRANCH
+        #TODO appending quoted text isn't working
         reply = m["quote"]
+        print(f"QUOTE: {reply}") #TODO remove test code
         reply_to_author = reply["author"]
         reply_to_timestamp = reply["id"]
         reply_to_receiver = dest
         if reply_to_author == reply_to_receiver:
             reply_to_receiver = source
-        previous_message = ReadMessage(reply_to_author, reply_to_receiver, reply_to_timestamp)
-        if previous_message:
-            AppendMessage(source, dest, timestamp, previous_message)
+        previous_message_lines = ReadMessageLines(reply_to_author, reply_to_receiver, reply_to_timestamp)
+        print(f"PREVIOUS ({reply_to_author}, {reply_to_receiver}, {reply_to_timestamp}): {previous_message_lines}") #TODO remove test code
+        if previous_message_lines and len(previous_message_lines) != 0:
+            AppendMessage(source, dest, timestamp, previous_message_lines)
     HandleMessage(source, dest, timestamp, message)
 
 def ProcessReaction(reaction, source, dest):
@@ -136,18 +137,17 @@ def StoreMessage(author, receiver, timestamp, name, message):
         f.write(heading + '\n')
         f.write(body + '\n')
 
-def AppendMessage(author, receiver, timestamp, previous_message):
-    append_lines = previous_message.splitlines()[1:] # skip the first line (heading) of previous_message, we only want to append the body
+def AppendMessage(author, receiver, timestamp, previous_message_lines):
     with open(MessagePath(author, receiver, timestamp), 'a') as f:
-        for line in append_lines:
+        for line in previous_message_lines[1:]: # skip the first line (heading) of previous_message, we only want to append the body
             f.write(line + '\n')
 
-def ReadMessage(author, receiver, timestamp):
+def ReadMessageLines(author, receiver, timestamp):
     path = MessagePath(author, receiver, timestamp)
     if not os.path.isfile(path):
         return None
     with open(path, 'r') as f:
-        return f.read()
+        return f.readlines()
 
 def MessagePath(author, receiver, timestamp):
     folder = os.path.join(MESSAGES, author, receiver)
@@ -163,8 +163,8 @@ def HandleMessage(author, receiver, timestamp, message):
 def HandleReaction(author, receiver, timestamp, emoji, is_remove):
     # I either reacted to my own message, or one sent to me/group
     if emoji == TASK_EMOJI and not is_remove:
-        lines = ReadMessage(author, receiver, timestamp)
-        if len(lines) < 1:
+        lines = ReadMessageLines(author, receiver, timestamp)
+        if not lines or len(lines) == 0:
             name = "Unknown Task"
             notes = f"Signal message from {author} to {receiver} at {timestamp} could not be found"
         else:
