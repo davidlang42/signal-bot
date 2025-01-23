@@ -4,7 +4,7 @@ FROM ubuntu:latest
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		wget tar ca-certificates openjdk-17-jre-headless python3
+		wget tar ca-certificates openjdk-21-jre-headless python3 python3-requests python3-qrcode
 # sed jq qrencode curl bash
 
 # # set the correct locale so java supports emojis
@@ -31,4 +31,4 @@ VOLUME /signal_bot_messages
 VOLUME /signal_bot_config
 
 # run (requires environment var GOOGLE_APPS_SCRIPT_URL to be set)
-ENTRYPOINT ["/signal_bot.py"]
+ENTRYPOINT ["python3", "signal_bot.py"]
