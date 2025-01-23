@@ -4,7 +4,7 @@ function doEmail(e) {
   const html = e.parameter.html;
   let msg = e.parameter.msg;
   if (html) {
-    GmailApp.sendEmail(EMAIL_ADDRESS, title, "", convertInlineImagesToBlobs(html))
+    GmailApp.sendEmail(EMAIL_ADDRESS, title, "", convertDoubleQuotedInlineImagesToBlobs(html))
   } else {
     if (!msg) msg = "";
     GmailApp.sendEmail(EMAIL_ADDRESS, title, msg)
@@ -13,7 +13,7 @@ function doEmail(e) {
 }
 
 //https://www.labnol.org/gmail-base64-images-231026
-function convertInlineImagesToBlobs(htmlBody) {
+function convertDoubleQuotedInlineImagesToBlobs(htmlBody) {
   const inlineImages = {};
 
   // Find all base64 image tags in the html message.

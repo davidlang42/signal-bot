@@ -31,7 +31,7 @@ then
     echo "${output_prefix}Saving apps script changes..."
     git add .
     git commit -m "$description - POSSIBLE LOST CHANGES"
-    git revert HEAD -m "Revert: $description - POSSIBLE LOST CHANGES"
+    git revert HEAD
     echo "${output_prefix}...done"
 fi
 echo "${output_prefix}Pushing to apps scripts..."

@@ -1,5 +1,5 @@
 {
-  "timeZone": "Australia/Sydney",
+  "timeZone": "Etc/UTC",
   "dependencies": {
     "enabledAdvancedServices": [
       {

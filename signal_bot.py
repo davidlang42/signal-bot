@@ -4,6 +4,7 @@ import base64
 import subprocess
 import json
 import time
+import datetime
 import requests # pip install requests
 import qrcode # pip install qrcode
 
@@ -30,10 +31,9 @@ def SendEmail(subject, html):
         return False
 
 def AddTask(title, notes):
-    #TODO: local due=$(date -d "$DATE_ADJUSTMENT" +%Y-%m-%d)
     response = requests.get(appsScriptUrl, {
         'action':'task',
-        'due': due,
+        'due': datetime.datetime.today().strftime('%Y-%m-%d'), #TODO might need to handle $DATE_ADJUSTMENT unless I can set container timezone
         'title': title,
         'notes': notes
     })
@@ -51,7 +51,7 @@ def LinkDevice():
     memory_buffer = io.BytesIO()
     qr.save(memory_buffer, format="PNG")
     base64string = base64.b64encode(memory_buffer.getvalue()).decode()
-    html = f"<p>{link}</p><img src='data:image/png;base64,{base64string}' />"
+    html = f'<p>{link}</p><img src="data:image/png;base64,{base64string}" />'
     if not SendEmail("SignalBot is not linked", html):
         print("Failed to send link email")
         process.terminate()
@@ -59,7 +59,9 @@ def LinkDevice():
     returncode = process.wait()
     return returncode == 0
 
-def WaitForMessage(): #TODO: formerly read_messages
+#TODO TEST BELOW HERE
+
+def WaitForMessage():
     #TODO: could try
     # popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
     # for stdout_line in iter(popen.stdout.readline, ""):
@@ -150,4 +152,4 @@ def RemoveEmoji(author, receiver, timestamp):
 while True:
     if not WaitForMessage(): # blocks until a message arrives
         if not LinkDevice(): # tries for 1min
-            time.sleep(240) # wait 1+4min between repeated link emails
+            time.sleep(4 * 60) # wait 1+4min between repeated link emails
