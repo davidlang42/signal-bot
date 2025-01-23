@@ -49,7 +49,7 @@ def AddTask(title, notes):
         print(f"Failed ({response.status_code}) to add task '{title}': {response.text}")
         return False
     
-### Interact with signal-cli
+### Monitor using signal-cli
 
 def LinkDevice():
     process = subprocess.Popen(['signal-cli', '--config', CONFIG, 'link', '-n', "SignalBot"], stdout=subprocess.PIPE)
@@ -79,30 +79,29 @@ def ProcessPayload(p):
     if "envelope" in p:
         ProcessEnvelope(p["envelope"], p["account"])
 
-#TODO TEST BELOW HERE
-
 def ProcessEnvelope(e, account):
-    print(f"ENVELOPE: {e}")
+    print(f"ENVELOPE: {e}") #TODO: remove
     if "syncMessage" in e and "sentMessage" in e["syncMessage"]:
         # I sent a message or I reacted
         sent = e["syncMessage"]["sentMessage"]
         source = e["source"]
         dest = sent["destination"]
-        CheckMessageForContent(sent, source, dest, e["sourceName"])
-        CheckMessageForReaction(sent, source, dest)
+        if "message" in sent and sent["message"]:
+            ProcessMessage(sent, source, dest, e["sourceName"])
+        elif "reaction" in sent:
+            ProcessReaction(sent["reaction"], source, dest)
     elif "dataMessage" in e:
         # they sent a messsage or they reacted (but ignore their reactions)
-        CheckMessageForContent(e["dataMessage"], e["source"], account, e["sourceName"])
+        received = e["dataMessage"]
+        if "message" in received and received["message"]:
+            ProcessMessage(received, e["source"], account, e["sourceName"])
 
-def CheckMessageForContent(m, source, dest, name):#TODO rename and revise args
-    print(f"CHECK-MSG-CONTENT: {m}")
-    if not "message" in m:
-        return
+def ProcessMessage(m, source, dest, name):
     message = m["message"]
     timestamp = m["timestamp"]
     StoreMessage(source, dest, timestamp, name, message)
     if "quote" in m:
-        #TODO revise this branch (needs testing)
+        #TODO TEST THIS BRANCH
         reply = m["quote"]
         reply_to_author = reply["author"]
         reply_to_timestamp = reply["id"]
@@ -111,21 +110,17 @@ def CheckMessageForContent(m, source, dest, name):#TODO rename and revise args
             reply_to_receiver = source
         previous_message = ReadMessage(reply_to_author, reply_to_receiver, reply_to_timestamp)
         AppendMessage(source, dest, timestamp, previous_message)
+    HandleMessage(source, dest, timestamp, message)
 
-def CheckMessageForReaction(m, source, dest):#TODO rename and revise args
-    print(f"CHECK-MSG-REACTION: {m}")
-    if not "reaction" in m:
-        return
-    reaction = m["reaction"]
+def ProcessReaction(reaction, source, dest):
     emoji = reaction["emoji"]
-    remove = reaction["isRemove"]
-    if emoji == TASK_EMOJI and not remove:
-        author = reaction["targetAuthor"]
-        timestamp = reaction["targetSentTimestamp"]
-        if author == dest:
-            HandleReaction(author, source, timestamp)
-        else:
-            HandleReaction(author, dest, timestamp)
+    is_remove = reaction["isRemove"]
+    author = reaction["targetAuthor"]
+    timestamp = reaction["targetSentTimestamp"]
+    #TODO TEST THIS BRANCH
+    if author == dest:
+        dest = source
+    HandleReaction(author, dest, timestamp, emoji, is_remove)
 
 ### Persist messages by (author, receiver, timestamp)
 
@@ -151,16 +146,20 @@ def MessagePath(author, receiver, timestamp):
 
 ### Actually be a Signal bot
 
-def HandleReaction(author, receiver, timestamp):
-    lines = ReadMessage(author, receiver, timestamp)
-    if len(lines) < 1:
-        name = "Unknown Task"
-        notes = f"Signal message from {author} to {receiver} at {timestamp} could not be found"
-    else:
-        name = lines[0]
-        notes = lines[1:]
-    if AddTask(name, notes):
-        RemoveEmoji(author, receiver, timestamp)
+def HandleMessage(author, receiver, timestamp, message):
+    pass
+
+def HandleReaction(author, receiver, timestamp, emoji, is_remove):
+    if emoji == TASK_EMOJI and not is_remove:
+        lines = ReadMessage(author, receiver, timestamp)
+        if len(lines) < 1:
+            name = "Unknown Task"
+            notes = f"Signal message from {author} to {receiver} at {timestamp} could not be found"
+        else:
+            name = lines[0]
+            notes = lines[1:]
+        if AddTask(name, notes):
+            RemoveEmoji(author, receiver, timestamp)
 
 ### Main loop
 
