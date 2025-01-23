@@ -59,46 +59,40 @@ def LinkDevice():
     returncode = process.wait()
     return returncode == 0
 
+def ListenForMessages():
+    return subprocess.Popen(['signal-cli', '--config', CONFIG, '-o', 'json', 'receive', '-t', '-1', '--ignore-attachments', '--ignore-stories', '--max-messages', '10'], stdout=subprocess.PIPE, universal_newlines=True)
+
 #TODO TEST BELOW HERE
 
-def WaitForMessage():
-    #TODO: could try
-    # popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-    # for stdout_line in iter(popen.stdout.readline, ""):
-    #     yield stdout_line 
-    # popen.stdout.close()
-    # return_code = popen.wait()
-    #TODO: previously tried to process messages continuously until actually nessesary to terminate it, now just reads 1 at a time (will need to test if this is performant)
-    result = subprocess.run(['signal-cli', '--config', CONFIG, '-o', 'json', 'receive', '-t', '-1', '--ignore-attachments', '--ignore-stories', '--max-messages', '1'], stdout=subprocess.PIPE)
-    if result.returncode != 0:
-        return False
-    msg = json.loads(result.stdout.decode())
-    ProcessMessage(msg)
-    return True
+def ProcessPayload(p):
+    print(f"PAYLOAD: {p}")
+    if "envelope" in p:
+        ProcessEnvelope(p["envelope"], p["account"])
 
-def ProcessMessage(m):
-    source = m["envelope"]["source"]
-    sent = m["envelope"]["syncMessage"]["sentMessage"]
-    if sent:
+def ProcessEnvelope(e, account):
+    print(f"ENVELOPE: {e}")
+    source = e["source"]
+    if "syncMessage" in e and "sentMessage" in e["syncMessage"]:
         # I sent a message or I reacted
+        sent = e["syncMessage"]["sentMessage"]
         dest = sent["destination"]
-        #TODO: check_for_content "$sent" "$source" "$destination" "to $destination"
-        #TODO: check_for_reaction "$pid" "$sent" "$source" "$destination"
-    received = m["envelope"]["dataMessage"]
-    if received:
+        CheckMessageForContent(sent, source, dest, f"to {dest}")
+        CheckMessageForReaction(sent, source, dest)
+    if "dataMessage" in e:
         # they sent a messsage or they reacted (but ignore their reactions)
-        my_account = m["account"]
-        source_name = m["envelope"]["sourceName"]
-        #TODO: check_for_content "$received" "$source" "$my_account" "from $source_name"
+        received = e["dataMessage"]
+        source_name = e["sourceName"]
+        CheckMessageForContent(received, source, account, f"from {source_name}")
 
-def CheckForContent(o, source, dest, from_to_display_name):
-    message = o["message"]
-    if not message:
-        return False
-    timestamp = o["timestamp"]
+def CheckMessageForContent(m, source, dest, from_to_display_name):
+    print(f"CHECK-MSG-CONTENT: {m}")
+    if not "message" in m:
+        return
+    message = m["message"]
+    timestamp = m["timestamp"]
     StoreMessage(message, source, dest, timestamp, from_to_display_name)
-    reply = o["quote"]
-    if reply:
+    if "quote" in m:
+        reply = m["quote"]
         reply_to_author = reply["author"]
         reply_to_timestamp = reply["id"]
         reply_to_receiver = dest
@@ -107,28 +101,31 @@ def CheckForContent(o, source, dest, from_to_display_name):
         previous_message = ReadMessage(reply_to_author, reply_to_receiver, reply_to_timestamp)
         AppendMessage(previous_message, source, dest, timestamp)
 
-def CheckForReaction(o, source, dest):
-    emoji = o["reaction"]["emoji"]
-    remove = o["reaction"]["isRemove"].strip().lower() == "true"
+def CheckMessageForReaction(m, source, dest):
+    print(f"CHECK-MSG-REACTION: {m}")
+    if not "reaction" in m:
+        return
+    emoji = m["reaction"]["emoji"]
+    remove = m["reaction"]["isRemove"]
     if emoji == TASK_EMOJI and not remove:
-        author = o["reaction"]["targetAuthor"]
-        timestamp = o["reaction"]["targetSentTimestamp"]
+        author = m["reaction"]["targetAuthor"]
+        timestamp = m["reaction"]["targetSentTimestamp"]
         if author == dest:
             HandleReaction(author, source, timestamp)
         else:
             HandleReaction(author, dest, timestamp)
 
 def StoreMessage(message, author, receiver, timestamp, from_to_display_name):
-    print(message)
+    print(f'TODO---STORE: {message}')
     #TODO: echo "$1" > "$(message_path "$2" "$3" "$4")"
     #TODO: echo "(Signal message $5)" >> "$(message_path "$2" "$3" "$4")"
 
 def AppendMessage(message, author, receiver, timestamp):
-    print(message)
+    print(f'TODO---APPEND: {message}')
     #TODO: echo "$1" >> "$(message_path "$2" "$3" "$4")"
 
 def ReadMessage(author, receiver, timestamp):
-    print("read message")
+    print(f'TODO---READ')
     #TODO: cat "$(message_path "$1" "$2" "$3")"
 
 def MessagePath(author, receiver, timestamp):
@@ -146,10 +143,21 @@ def HandleReaction(author, receiver, timestamp):
         RemoveEmoji(author, receiver, timestamp)
 
 def RemoveEmoji(author, receiver, timestamp):
+    listener.terminate() # otherwise executing signal-cli below will fail
     subprocess.run(['signal-cli', '--config', CONFIG, 'sendReaction', '-r', '-e', TASK_EMOJI, '-t', timestamp, '-a', author, receiver])
+
+
+
+
+
+    
+
 
 # main loop
 while True:
-    if not WaitForMessage(): # blocks until a message arrives
+    listener = ListenForMessages()
+    for line in iter(listener.stdout.readline, ""):
+        ProcessPayload(json.loads(line))
+    if listener.wait() != 0: # non-zero return code indicates device is not linked
         if not LinkDevice(): # tries for 1min
             time.sleep(4 * 60) # wait 1+4min between repeated link emails

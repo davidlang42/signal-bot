@@ -31,4 +31,4 @@ VOLUME /signal_bot_messages
 VOLUME /signal_bot_config
 
 # run (requires environment var GOOGLE_APPS_SCRIPT_URL to be set)
-ENTRYPOINT ["python3", "signal_boy.py"]
+ENTRYPOINT ["python3", "-i"]
