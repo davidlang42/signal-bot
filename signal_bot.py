@@ -86,6 +86,8 @@ def ProcessEnvelope(e, account):
         sent = e["syncMessage"]["sentMessage"]
         source = e["source"]
         dest = sent["destination"]
+        if not dest:
+            dest = sent["groupInfo"]["groupId"]
         if "message" in sent and sent["message"]:
             ProcessMessage(sent, source, dest, e["sourceName"])
         elif "reaction" in sent:
@@ -93,8 +95,11 @@ def ProcessEnvelope(e, account):
     elif "dataMessage" in e:
         # they sent a messsage or they reacted (but ignore their reactions)
         received = e["dataMessage"]
+        dest = account
+        if "groupInfo" in received:
+            dest = received["groupInfo"]["groupId"]
         if "message" in received and received["message"]:
-            ProcessMessage(received, e["source"], account, e["sourceName"])
+            ProcessMessage(received, e["source"], dest, e["sourceName"])
 
 def ProcessMessage(m, source, dest, name):
     message = m["message"]
@@ -145,19 +150,21 @@ def ReadMessage(author, receiver, timestamp):
     if not os.path.isfile(path):
         return None
     with open(path, 'r') as f:
-        return f.read().decode()
+        return f.read()
 
 def MessagePath(author, receiver, timestamp):
     folder = os.path.join(MESSAGES, author, receiver)
     os.makedirs(folder, exist_ok=True)
-    return os.path.join(folder, timestamp)
+    return os.path.join(folder, str(timestamp))
 
 ### Actually be a Signal bot
 
 def HandleMessage(author, receiver, timestamp, message):
+    # either I sent a message, or someone sent a message to me/group
     pass
 
 def HandleReaction(author, receiver, timestamp, emoji, is_remove):
+    # I either reacted to my own message, or one sent to me/group
     if emoji == TASK_EMOJI and not is_remove:
         lines = ReadMessage(author, receiver, timestamp)
         if len(lines) < 1:
