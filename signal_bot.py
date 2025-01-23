@@ -123,7 +123,6 @@ def ProcessReaction(reaction, source, dest):
     is_remove = reaction["isRemove"]
     author = reaction["targetAuthor"]
     timestamp = reaction["targetSentTimestamp"]
-    #TODO TEST THIS BRANCH
     if author == dest:
         dest = source
     HandleReaction(author, dest, timestamp, emoji, is_remove)
@@ -131,7 +130,6 @@ def ProcessReaction(reaction, source, dest):
 ### Persist messages by (author, receiver, timestamp)
 
 def StoreMessage(author, receiver, timestamp, name, message):
-    print(f'[{author}, {receiver}, {timestamp}] {name}{NAME_SEPARATOR}{message}') #TODO remove
     heading = (message[:MAX_TITLE_LENGTH-len(TITLE_TRUNCATION)] + TITLE_TRUNCATION) if len(message) > MAX_TITLE_LENGTH else message
     body = name + NAME_SEPARATOR + message
     with open(MessagePath(author, receiver, timestamp), 'w') as f:
@@ -139,7 +137,6 @@ def StoreMessage(author, receiver, timestamp, name, message):
         f.write(body + '\n')
 
 def AppendMessage(author, receiver, timestamp, previous_message):
-    print(f'+[{author}, {receiver}, {timestamp}] {previous_message}') #TODO remove
     append_lines = previous_message.splitlines()[1:] # skip the first line (heading) of previous_message, we only want to append the body
     with open(MessagePath(author, receiver, timestamp), 'a') as f:
         for line in append_lines:
