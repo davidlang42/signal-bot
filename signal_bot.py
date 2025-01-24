@@ -35,10 +35,10 @@ def SendEmail(subject, html):
         print(f"Failed ({response.status_code}) to send email '{subject}': {response.text}")
         return False
 
-def AddTask(title, notes):
+def AddTask(title, notes, due):
     response = requests.get(appsScriptUrl, {
         'action':'task',
-        'due': datetime.datetime.today().strftime('%Y-%m-%d'), #TODO need to handle $DATE_ADJUSTMENT unless I can set container timezone (or maybe send timestamp here, and let the GAS sort it out)
+        'due': due,
         'title': title,
         'notes': notes
     })
@@ -173,7 +173,7 @@ def HandleReaction(author, receiver, timestamp, emoji, is_remove, receiver_is_gr
         else:
             name = lines[0].strip()
             notes = ''.join(lines[1:]).strip()
-        if AddTask(name, notes):
+        if AddTask(name, notes, timestamp):
             RemoveEmoji(author, receiver, timestamp, receiver_is_group)
 
 ### Main loop
