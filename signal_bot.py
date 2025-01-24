@@ -69,9 +69,13 @@ def LinkDevice():
 def ListenForMessages():
     return subprocess.Popen(['signal-cli', '--config', CONFIG, '-o', 'json', 'receive', '-t', '-1', '--ignore-attachments', '--ignore-stories'], stdout=subprocess.PIPE, universal_newlines=True)
 
-def RemoveEmoji(author, receiver, timestamp):
+def RemoveEmoji(author, receiver, timestamp, receiver_is_group):
     listener.terminate() # otherwise executing signal-cli below will fail
-    subprocess.run(['signal-cli', '--config', CONFIG, 'sendReaction', '-r', '-e', TASK_EMOJI, '-t', str(timestamp), '-a', author, receiver]) #TODO removing emojis doesnt work when message receiver is a groupid (it should use -g cli arg instead)
+    args = ['signal-cli', '--config', CONFIG, 'sendReaction', '-r', '-e', TASK_EMOJI, '-t', str(timestamp), '-a', author]
+    if receiver_is_group:
+        args.append('-g')
+    args.append(receiver)
+    subprocess.run(args)
 
 ### Parse JSON payloads
 
@@ -85,12 +89,14 @@ def ProcessEnvelope(e, account):
         sent = e["syncMessage"]["sentMessage"]
         source = e["source"]
         dest = sent["destination"]
+        dest_is_group = False
         if not dest:
             dest = sent["groupInfo"]["groupId"]
+            dest_is_group = True
         if "message" in sent and sent["message"]:
             ProcessMessage(sent, source, dest, e["sourceName"])
         elif "reaction" in sent:
-            ProcessReaction(sent["reaction"], source, dest)
+            ProcessReaction(sent["reaction"], source, dest, dest_is_group)
     elif "dataMessage" in e:
         # they sent a messsage or they reacted (but ignore their reactions)
         received = e["dataMessage"]
@@ -116,14 +122,14 @@ def ProcessMessage(m, source, dest, name):
             AppendMessage(source, dest, timestamp, previous_message_lines)
     HandleMessage(source, dest, timestamp, message)
 
-def ProcessReaction(reaction, source, dest):
+def ProcessReaction(reaction, source, dest, dest_is_group):
     emoji = reaction["emoji"]
     is_remove = reaction["isRemove"]
     author = reaction["targetAuthor"]
     timestamp = reaction["targetSentTimestamp"]
     if author == dest:
         dest = source
-    HandleReaction(author, dest, timestamp, emoji, is_remove)
+    HandleReaction(author, dest, timestamp, emoji, is_remove, dest_is_group)
 
 ### Persist messages by (author, receiver, timestamp)
 
@@ -157,7 +163,7 @@ def HandleMessage(author, receiver, timestamp, message):
     # either I sent a message, or someone sent a message to me/group
     pass
 
-def HandleReaction(author, receiver, timestamp, emoji, is_remove):
+def HandleReaction(author, receiver, timestamp, emoji, is_remove, receiver_is_group):
     # I either reacted to my own message, or one sent to me/group
     if emoji == TASK_EMOJI and not is_remove:
         lines = ReadMessageLines(author, receiver, timestamp)
@@ -168,7 +174,7 @@ def HandleReaction(author, receiver, timestamp, emoji, is_remove):
             name = lines[0].strip()
             notes = ''.join(lines[1:]).strip()
         if AddTask(name, notes):
-            RemoveEmoji(author, receiver, timestamp)
+            RemoveEmoji(author, receiver, timestamp, receiver_is_group)
 
 ### Main loop
 
