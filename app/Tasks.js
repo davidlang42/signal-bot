@@ -2,7 +2,7 @@ function doTask(e) {
   const title = e.parameter.title;
   if (!title) return doError(e, "No title set for task.");
   const notes = e.parameter.notes;
-  const due = e.parameter.due;
+  let due = e.parameter.due;
   const taskListName = e.parameter.list;
   // find task list
   var taskListId;
@@ -16,7 +16,10 @@ function doTask(e) {
   var task = Tasks.newTask();
   task.title = title;
   if (notes) task.notes = notes;
-  if (due) task.due = formatDate(new Date(due));
+  if (due) {
+    if (!isNaN(due)) due = parseInt(due); // timestamp
+    task.due = formatDate(new Date(due));
+  }
   Tasks.Tasks.insert(task, taskListId);
   return doSuccess("Task actioned.");
 }
