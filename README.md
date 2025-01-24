@@ -23,7 +23,7 @@ There are 2 steps to running SignalBot. As SignalBot is a single user applicatio
 
 ### Run docker container
 
-- Run an instance of the docker image (available as `davidlang42/signal-bot:latest` on [Docker Hub](https://hub.docker.com/r/davidlang42/signal-bot)) on whatever server or computer you would like
+- Run an instance of the docker image (available as `davidlang42/signal-bot:latest` on [Docker Hub](https://hub.docker.com/repository/docker/davidlang42/signal-bot/general)) on whatever server or computer you would like
 - Configure environment variable `GOOGLE_APPS_SCRIPT_URL` to be the Web App URL (secret) you created above
 - Configure a persistent volume at mount point `/signal_bot_messages` to store the incoming messages received by Signal
 - Configure a persistent volume at mount point `/signal_bot_config` to store the account credentials once Signal is linked
