@@ -7,7 +7,7 @@ RUN set -eux; \
 		wget tar ca-certificates openjdk-21-jre-headless python3 python3-requests python3-qrcode
 
 # install signal-cli
-ENV SIGNAL_CLI_VERSION=0.13.12
+ENV SIGNAL_CLI_VERSION=0.13.24
 RUN set -eux; \
     wget https://github.com/AsamK/signal-cli/releases/download/v"${SIGNAL_CLI_VERSION}"/signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz; \
     tar xf signal-cli-"${SIGNAL_CLI_VERSION}".tar.gz -C /opt; \
